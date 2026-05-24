@@ -6,6 +6,7 @@
 // of a session. notify() routes through pi's render loop so output integrates
 // cleanly with the TUI regardless of when it fires.
 
+import { loadPersistedConfig, savePersistedConfig } from "./config.js";
 import { discoverModels, type DiscoveredModel } from "./discovery.js";
 import type { OllamaExtensionSettings } from "./settings.js";
 
@@ -25,6 +26,11 @@ interface CommandUIContext {
 		select(
 			title: string,
 			options: string[],
+			opts?: { signal?: AbortSignal; timeout?: number },
+		): Promise<string | undefined>;
+		input(
+			title: string,
+			placeholder?: string,
 			opts?: { signal?: AbortSignal; timeout?: number },
 		): Promise<string | undefined>;
 	};
@@ -199,6 +205,104 @@ export function registerCommands(
 				);
 			} catch (e) {
 				ctx.ui.notify(`Failed: ${String(e)}`, "error");
+			}
+		},
+	});
+
+	pi.registerCommand("ollama-context", {
+		description:
+			"Set the num_ctx value pi-ollama sends to /api/chat. Persistent across restarts.",
+		handler: async (_args, ctx) => {
+			const PRESETS: Array<{ label: string; value: number }> = [
+				{ label: "4,096 tokens (low memory)", value: 4096 },
+				{ label: "8,192 tokens", value: 8192 },
+				{ label: "16,384 tokens", value: 16384 },
+				{ label: "32,768 tokens (current default cap)", value: 32768 },
+				{ label: "65,536 tokens", value: 65536 },
+				{ label: "131,072 tokens", value: 131072 },
+			];
+			const USE_DEFAULT = "Use system default (model maximum, capped at 32,768)";
+			const CUSTOM = "Custom value…";
+
+			const current = settings.contextLength;
+			const currentNote =
+				current !== undefined
+					? `Current override: ${current.toLocaleString()} tokens`
+					: "Current: system default (no override)";
+
+			const options = [
+				...PRESETS.map((p) => p.label),
+				USE_DEFAULT,
+				CUSTOM,
+			];
+
+			const selected = await ctx.ui.select(
+				`Context length for /api/chat — ${currentNote}`,
+				options,
+			);
+			if (!selected) {
+				// User cancelled — quiet exit.
+				return;
+			}
+
+			let newValue: number | undefined;
+
+			if (selected === USE_DEFAULT) {
+				newValue = undefined;
+			} else if (selected === CUSTOM) {
+				const raw = await ctx.ui.input(
+					"Enter context length in tokens",
+					"e.g., 16384",
+				);
+				if (!raw) {
+					// User cancelled the input — quiet exit.
+					return;
+				}
+				const n = parseInt(raw.trim(), 10);
+				if (!Number.isFinite(n) || n <= 0) {
+					ctx.ui.notify(
+						"Invalid context length. Must be a positive integer.",
+						"error",
+					);
+					return;
+				}
+				newValue = n;
+			} else {
+				const matched = PRESETS.find((p) => p.label === selected);
+				if (!matched) {
+					ctx.ui.notify("Unrecognized selection.", "error");
+					return;
+				}
+				newValue = matched.value;
+			}
+
+			// Persist to disk AND mutate the shared settings object so the
+			// next /api/chat request picks up the new value without a relaunch.
+			const persisted = loadPersistedConfig();
+			if (newValue === undefined) {
+				delete persisted.contextLength;
+			} else {
+				persisted.contextLength = newValue;
+			}
+			savePersistedConfig(persisted);
+			settings.contextLength = newValue;
+
+			// Re-register the provider so pi's model registry (and the UI
+			// context-usage counter) reflects the new effective contextWindow.
+			// Without this the wire request would carry the new num_ctx but the
+			// UI would keep showing the discovered max — a misleading mismatch.
+			reregisterProvider(getModels());
+
+			if (newValue === undefined) {
+				ctx.ui.notify(
+					"Context length override cleared. Using system default (model maximum, capped at 32,768 tokens).",
+					"info",
+				);
+			} else {
+				ctx.ui.notify(
+					`Context length set to ${newValue.toLocaleString()} tokens. Applies to the next /api/chat request and persists across pi launches.`,
+					"info",
+				);
 			}
 		},
 	});

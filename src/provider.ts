@@ -164,6 +164,10 @@ export function streamOllama(
 				supportsVision,
 			);
 
+			// model.contextWindow already incorporates settings.contextLength
+			// override and the capped default — applied once in index.ts's
+			// toProviderModel so both this wire path and pi's UI counter read
+			// the same effective value. See toProviderModel for resolution.
 			const numCtx = model.contextWindow ?? settings.numCtx ?? DEFAULT_NUM_CTX;
 
 			const requestOptions: OllamaRequest["options"] = { num_ctx: numCtx };
