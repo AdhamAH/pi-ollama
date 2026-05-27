@@ -1,16 +1,24 @@
 {
   "name": "pi-ollama",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Native Ollama provider for pi coding agent — fixes tool calling under streaming",
   "type": "module",
   "main": "src/index.ts",
   "pi": {
-    "extensions": ["src/index.ts"]
+    "extensions": [
+      "src/index.ts"
+    ]
   },
   "scripts": {
     "check": "tsc --noEmit"
   },
-  "keywords": ["pi", "ollama", "llm", "coding-agent", "extension"],
+  "keywords": [
+    "pi",
+    "ollama",
+    "llm",
+    "coding-agent",
+    "extension"
+  ],
   "author": "Andrew Horsburgh (https://github.com/CaptCanadaMan)",
   "license": "MIT",
   "repository": {
