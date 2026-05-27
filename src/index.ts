@@ -25,7 +25,7 @@ import { OLLAMA_DEBUG, OLLAMA_DEBUG_LOG } from "./debug.js";
 
 // ============================================================================
 // Minimal structural interfaces for the pi extension API.
-// The real types come from @mariozechner/pi-coding-agent at runtime.
+// The real types come from @earendil-works/pi-coding-agent at runtime.
 // ============================================================================
 
 interface ProviderModel {
@@ -70,7 +70,7 @@ interface ExtensionAPI {
 }
 
 // AssistantMessageEventStream is the class pi uses for all streaming responses.
-// We import it at runtime from @mariozechner/pi-ai — the extension receives the
+// We import it at runtime from @earendil-works/pi-ai — the extension receives the
 // resolved package from pi's module loader so this works without the package
 // being a direct dependency of pi-ollama.
 let StreamClass: new () => { push(event: unknown): void; end(): void };
@@ -79,10 +79,10 @@ async function resolveStreamClass() {
 	if (StreamClass) return;
 	let mod: unknown;
 	try {
-		mod = await import("@mariozechner/pi-ai");
+		mod = await import("@earendil-works/pi-ai");
 	} catch (e) {
 		throw new Error(
-			"pi-ollama: could not import @mariozechner/pi-ai. " +
+			"pi-ollama: could not import @earendil-works/pi-ai. " +
 				`Ensure it's available in pi's module resolution path. (${String(e)})`,
 		);
 	}
@@ -90,7 +90,7 @@ async function resolveStreamClass() {
 	const cls = (mod as any).AssistantMessageEventStream;
 	if (typeof cls !== "function") {
 		throw new Error(
-			"pi-ollama: @mariozechner/pi-ai loaded but did not export AssistantMessageEventStream. " +
+			"pi-ollama: @earendil-works/pi-ai loaded but did not export AssistantMessageEventStream. " +
 				"This may indicate an incompatible pi-ai version.",
 		);
 	}

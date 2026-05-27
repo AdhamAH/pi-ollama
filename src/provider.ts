@@ -24,7 +24,7 @@ import type { OllamaExtensionSettings } from "./settings.js";
 // ============================================================================
 // Types — minimal structural interfaces that match pi-ai's shapes.
 // We declare them locally to avoid a hard import-time dependency on the exact
-// installed version of @mariozechner/pi-ai.
+// installed version of @earendil-works/pi-ai.
 // ============================================================================
 
 interface PiModel {

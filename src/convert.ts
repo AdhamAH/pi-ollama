@@ -16,7 +16,7 @@ import type { OllamaTool, OllamaWireMessage } from "./wire.js";
 
 // ============================================================================
 // Minimal pi message type declarations (structural — matched at runtime).
-// These mirror the shapes in @mariozechner/pi-ai without importing the package,
+// These mirror the shapes in @earendil-works/pi-ai without importing the package,
 // avoiding a hard runtime dependency on the installed version.
 // ============================================================================
 

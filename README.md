@@ -1,6 +1,6 @@
 # pi-ollama
 
-Native Ollama provider extension for the [pi coding agent](https://github.com/badlogic/pi-mono).
+Native Ollama provider extension for the [pi coding agent](https://github.com/earendil-works/pi-mono).
 
 Talks directly to Ollama's `/api/chat` endpoint, bypassing the OpenAI-compat shim at `/v1/chat/completions` that [silently drops `tool_calls`](https://github.com/ollama/ollama/issues/12557) from streamed responses.
 
@@ -144,9 +144,9 @@ Ollama's streaming has a few known edge cases. The provider handles them explici
 
 ## Compatibility
 
-- **pi**: Tested against `@mariozechner/pi-coding-agent` v0.71.x. Should work with any version exposing the standard `ExtensionAPI` (`registerProvider` with `streamSimple`, `registerCommand` with `ctx.ui.notify`).
+- **pi**: Tested against `@earendil-works/pi-coding-agent` v0.75.x. Should work with any version exposing the standard `ExtensionAPI` (`registerProvider` with `streamSimple`, `registerCommand` with `ctx.ui.notify`).
 - **Ollama**: Requires Ollama with `/api/chat` support (most versions). `/api/ps` is used opportunistically and tolerates older versions that don't expose it.
-- **Node**: Requires Node 18+ for built-in `fetch` and Web Streams.
+- **Node**: Requires Node 22.19+ (matches pi-coding-agent 0.75.0's minimum).
 
 ---
 
@@ -168,9 +168,9 @@ See [src/](./src/) for the implementation. Each file has a header comment explai
 
 ## Related projects
 
-- **[pi-mono](https://github.com/badlogic/pi-mono)** — the pi coding agent itself
+- **[pi-mono](https://github.com/earendil-works/pi-mono)** — the pi coding agent itself
 - **[ollama#12557](https://github.com/ollama/ollama/issues/12557)** — the upstream tool-calling streaming bug this extension routes around
-- **[pi-mono#3357](https://github.com/badlogic/pi-mono/issues/3357)** — the open issue requesting an official local-LLM extension
+- **[pi-mono#3357](https://github.com/earendil-works/pi-mono/issues/3357)** — the open issue requesting an official local-LLM extension
 - **[`@0xkobold/pi-ollama`](https://github.com/0xKobold/pi-ollama)** — alternative extension covering local + cloud via the OpenAI-compat shim
 - **[`fgrehm/pi-ollama-cloud`](https://github.com/fgrehm/pi-ollama-cloud)** — cloud-only Ollama extension
 

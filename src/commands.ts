@@ -19,7 +19,7 @@ interface OllamaPs {
 }
 
 // Minimal structural type for the ctx.ui surface we use.
-// The real type is ExtensionCommandContext from @mariozechner/pi-coding-agent.
+// The real type is ExtensionCommandContext from @earendil-works/pi-coding-agent.
 interface CommandUIContext {
 	ui: {
 		notify(message: string, type?: "info" | "warning" | "error"): void;
