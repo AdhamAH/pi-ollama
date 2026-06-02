@@ -604,6 +604,48 @@ export function streamOllama(
 				);
 			}
 
+			// Swallowed-tool-call detection (issue #3): the stream completed
+			// normally with visible content but no tool call, yet the model
+			// generated far more tokens than it streamed — the signature of a tool
+			// call Ollama buffered and dropped before sending (gemma4:e4b after a
+			// long think). The post-stream ghost check above misses it because
+			// thinking + text DID stream first; without this guard the turn ends as
+			// a silent no-op ("I'll proceed with the edits" → nothing happens).
+			//
+			// chunksReceived ≈ streamed tokens because Ollama streams ~1 token per
+			// NDJSON chunk. CALIBRATION IS n=1 — thresholds come from the single
+			// issue-#3 log (gemma4:e4b: streamed/generated ratio 0.36 on the swallow
+			// vs 0.81–0.92 on healthy tool turns). If a legitimate turn ever trips
+			// this (e.g. an Ollama build that batches tokens per chunk, deflating the
+			// ratio), widen these.
+			const SWALLOW_MIN_OUTPUT_TOKENS = 200; // ignore short turns (noise floor)
+			const SWALLOW_MAX_STREAMED_RATIO = 0.6; // streamed/generated below this is suspect
+			const SWALLOW_MIN_TOKEN_GAP = 200; // and the absolute shortfall must be large
+			if (
+				!sawToolCalls &&
+				sawDoneChunk &&
+				outputTokens > SWALLOW_MIN_OUTPUT_TOKENS &&
+				chunksReceived / outputTokens < SWALLOW_MAX_STREAMED_RATIO &&
+				outputTokens - chunksReceived > SWALLOW_MIN_TOKEN_GAP
+			) {
+				dbg("swallowed-toolcall", {
+					outputTokens,
+					chunksReceived,
+					streamedRatio: chunksReceived / outputTokens,
+					tokenGap: outputTokens - chunksReceived,
+					blockTypes: blocks.map((b) => b.type),
+				});
+				throw new Error(
+					`Ollama generated ${outputTokens} tokens but streamed only ${chunksReceived}, ` +
+						`then ended the turn with no tool call. The ~${outputTokens - chunksReceived} ` +
+						`unstreamed tokens were almost certainly a tool call that Ollama's parser ` +
+						`buffered and dropped before sending — a known Ollama-side issue with smaller ` +
+						`models after extended reasoning. The turn was not silently completed and no ` +
+						`tool call was lost on our side. Retry the turn, or use a more capable ` +
+						`tool-calling model.`,
+				);
+			}
+
 			stream.push({ type: "done", reason: output.stopReason, message: output });
 			stream.end();
 		} catch (error) {
