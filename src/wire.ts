@@ -55,4 +55,7 @@ export interface OllamaRequest {
 	};
 	keep_alive?: string | number;
 	format?: string | object;
+	// Ollama top-level reasoning toggle for thinking-capable models. true/false
+	// (or a level string for models like gpt-oss). Omitted for non-reasoning models.
+	think?: boolean | string;
 }

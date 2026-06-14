@@ -55,6 +55,9 @@ interface PiSimpleStreamOptions {
 	headers?: Record<string, string>;
 	temperature?: number;
 	maxTokens?: number;
+	// Thinking level pi passes down (off is conveyed as undefined). Used to set
+	// Ollama's top-level `think` for reasoning-capable models.
+	reasoning?: string;
 	onPayload?: (body: unknown, model: PiModel) => Promise<unknown> | unknown;
 	onResponse?: (
 		info: { status: number; headers: Record<string, string> },
@@ -188,6 +191,16 @@ export function streamOllama(
 
 			if (context.tools && context.tools.length > 0) {
 				body.tools = convertTools(context.tools);
+			}
+
+			// Wire pi's thinking level (options.reasoning) through to Ollama's
+			// top-level `think`. The harness passes the level string for
+			// minimal|low|medium|high|xhigh, or undefined when thinking is off.
+			// Only sent for reasoning-capable models — sending `think` to a
+			// non-thinking model can error.
+			if ((model as { reasoning?: boolean }).reasoning === true) {
+				const level = options?.reasoning;
+				body.think = level !== undefined && level !== "off";
 			}
 
 			// Allow callers to inspect or replace the request body.
