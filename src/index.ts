@@ -22,6 +22,11 @@ import { discoverModels, loadCache, type DiscoveredModel } from "./discovery.js"
 import { streamOllama } from "./provider.js";
 import { registerCommands } from "./commands.js";
 import { OLLAMA_DEBUG, OLLAMA_DEBUG_LOG } from "./debug.js";
+import {
+	type InputEvent,
+	type InputResult,
+	registerImageInput,
+} from "./image-input.js";
 
 // ============================================================================
 // Minimal structural interfaces for the pi extension API.
@@ -66,6 +71,10 @@ interface ExtensionAPI {
 			description: string;
 			handler: (args: string) => void | Promise<void>;
 		},
+	): void;
+	on?(
+		event: string,
+		handler: (e: InputEvent) => InputResult | Promise<InputResult>,
 	): void;
 }
 
@@ -172,6 +181,10 @@ export default async function (pi: ExtensionAPI): Promise<void> {
 	};
 
 	registerProvider(models);
+
+	// Auto-attach local image files referenced by path in user input, so paste
+	// (Ctrl+V) and typed image paths reach vision models as real attachments.
+	registerImageInput(pi);
 
 	// Wire up commands. /ollama-refresh re-discovers and re-registers.
 	registerCommands(

@@ -94,7 +94,7 @@ export function convertMessages(
 			const wire = convertAssistant(msg as AssistantMessage);
 			if (wire) out.push(wire);
 		} else if (msg.role === "toolResult") {
-			out.push(convertToolResult(msg as ToolResultMessage));
+			out.push(...convertToolResult(msg as ToolResultMessage, supportsVision));
 		} else {
 			// Unknown role — pi's compat flags should convert developer→system
 			// before reaching us, but log if anything else arrives so we can
@@ -171,17 +171,38 @@ function convertAssistant(msg: AssistantMessage): OllamaWireMessage | null {
 	return wire;
 }
 
-function convertToolResult(msg: ToolResultMessage): OllamaWireMessage {
+function convertToolResult(
+	msg: ToolResultMessage,
+	supportsVision: boolean,
+): OllamaWireMessage[] {
 	const text = msg.content
 		.filter(isText)
 		.map((b) => b.text)
 		.join("\n");
 
-	return {
+	const toolMsg: OllamaWireMessage = {
 		role: "tool",
 		content: sanitize(text || "(no result)"),
 		tool_name: msg.toolName,
 	};
+
+	// Ollama can't carry images on a role:"tool" message, so surface any images
+	// the tool returned (the read tool on an image file, a pasted screenshot) on a
+	// follow-up user message — the only message type Ollama renders images for.
+	// Vision-capable models only.
+	const images = supportsVision
+		? msg.content.filter(isImage).map((b) => b.data)
+		: [];
+	if (images.length === 0) return [toolMsg];
+
+	return [
+		toolMsg,
+		{
+			role: "user",
+			content: sanitize(`(image returned by the ${msg.toolName} tool)`),
+			images,
+		},
+	];
 }
 
 // ============================================================================
